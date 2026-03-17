@@ -12,6 +12,15 @@ import { addToast } from "../store/toastStore";
 import { formatCurrency, formatDate, cn } from "../lib/utils";
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-solid";
 
+
+const STATUS_OPTIONS: { value: Order["status"]; label: string }[] = [
+  { value: "pending",    label: "Pending" },
+  { value: "processing", label: "Processing" },
+  { value: "shipped",    label: "Shipped" },
+  { value: "delivered",  label: "Delivered" },
+  { value: "cancelled",  label: "Cancelled" },
+];
+
 export const OrdersPage: Component = () => {
   const [orders, { mutate }] = createResource(fetchOrders);
   const [sorting, setSorting] = createSignal<SortingState>([]);
@@ -25,15 +34,27 @@ export const OrdersPage: Component = () => {
   };
 
   const columns: ColumnDef<Order>[] = [
-    { accessorKey: "id", header: "Order ID", cell: (i) => <span class="font-mono text-xs">{i.getValue() as string}</span> },
+    {
+      accessorKey: "id",
+      header: "Order ID",
+      cell: (i) => <span class="font-mono text-xs">{i.getValue() as string}</span>,
+    },
     { accessorKey: "userName", header: "Customer" },
-    { accessorKey: "product", header: "Product", cell: (i) => (
-      <div>
-        <p class="font-medium text-sm">{i.getValue() as string}</p>
-        <p class="text-xs text-muted-foreground capitalize">{i.row.original.category}</p>
-      </div>
-    )},
-    { accessorKey: "amount", header: "Amount", cell: (i) => <span class="font-semibold">{formatCurrency(i.getValue() as number)}</span> },
+    {
+      accessorKey: "product",
+      header: "Product",
+      cell: (i) => (
+        <div>
+          <p class="font-medium text-sm">{i.getValue() as string}</p>
+          <p class="text-xs text-muted-foreground capitalize">{i.row.original.category}</p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "amount",
+      header: "Amount",
+      cell: (i) => <span class="font-semibold">{formatCurrency(i.getValue() as number)}</span>,
+    },
     {
       accessorKey: "status",
       header: "Status",
@@ -41,30 +62,27 @@ export const OrdersPage: Component = () => {
         const order = i.row.original;
         return (
           <Select
-            options={[
-              { value: "pending", label: "Pending" },
-              { value: "processing", label: "Processing" },
-              { value: "shipped", label: "Shipped" },
-              { value: "delivered", label: "Delivered" },
-              { value: "cancelled", label: "Cancelled" },
-            ]}
+            options={STATUS_OPTIONS}
             value={order.status}
-            onChange={async (e) => {
-              const newStatus = e.currentTarget.value as Order["status"];
+            onChange={async (newStatus) => {
               try {
-                const updated = await updateOrderStatus(order.id, newStatus);
+                const updated = await updateOrderStatus(order.id, newStatus as Order["status"]);
                 mutate(prev => prev?.map(o => o.id === updated.id ? updated : o));
                 addToast({ title: "Order updated", description: `Order ${order.id} is now ${newStatus}.`, variant: "success" });
               } catch {
                 addToast({ title: "Error", description: "Could not update order status.", variant: "destructive" });
               }
             }}
-            class="w-36 h-7 text-xs"
+            class="w-36 h-8 text-xs"
           />
         );
       },
     },
-    { accessorKey: "createdAt", header: "Date", cell: (i) => <span class="text-muted-foreground text-sm">{formatDate(i.getValue() as string)}</span> },
+    {
+      accessorKey: "createdAt",
+      header: "Date",
+      cell: (i) => <span class="text-muted-foreground text-sm">{formatDate(i.getValue() as string)}</span>,
+    },
   ];
 
   const table = createSolidTable({
@@ -87,32 +105,37 @@ export const OrdersPage: Component = () => {
     const data = orders() ?? [];
     return {
       total: data.length,
-      pending: data.filter(o => o.status === "pending").length,
+      pending:    data.filter(o => o.status === "pending").length,
       processing: data.filter(o => o.status === "processing").length,
-      delivered: data.filter(o => o.status === "delivered").length,
-      cancelled: data.filter(o => o.status === "cancelled").length,
+      delivered:  data.filter(o => o.status === "delivered").length,
+      cancelled:  data.filter(o => o.status === "cancelled").length,
     };
   };
 
+  const filterTabs = [
+    { label: "All",        value: "",            variant: "secondary" },
+    { label: "Pending",    value: "pending",     variant: "warning" },
+    { label: "Processing", value: "processing",  variant: "default" },
+    { label: "Delivered",  value: "delivered",   variant: "success" },
+    { label: "Cancelled",  value: "cancelled",   variant: "destructive" },
+  ] as const;
+
   return (
     <Layout title="Orders" subtitle="Track and manage all orders">
-      {/* Summary badges */}
-      <div class="flex flex-wrap gap-3 mb-6">
-        {([
-          ["All", ""],
-          ["Pending", "pending"],
-          ["Processing", "processing"],
-          ["Delivered", "delivered"],
-          ["Cancelled", "cancelled"],
-        ] as [string, string][]).map(([label, value]) => (
+      {/* Filter tabs */}
+      <div class="flex flex-wrap gap-2 mb-6">
+        {filterTabs.map(({ label, value }) => (
           <button
             onClick={() => setStatusFilter(value)}
-            class={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors",
-              statusFilter() === value ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted"
+            class={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors",
+              statusFilter() === value
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background border-border hover:bg-muted"
             )}
           >
             {label}
-            <span class="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-xs font-mono">
+            <span class="rounded-full bg-muted text-muted-foreground px-1.5 py-0.5 text-xs font-mono">
               {value === "" ? statusCounts().total : (statusCounts() as Record<string, number>)[value] ?? 0}
             </span>
           </button>

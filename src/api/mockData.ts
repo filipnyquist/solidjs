@@ -14,7 +14,7 @@ function randomInt(min: number, max: number): number {
 
 function randomDate(daysBack: number): string {
   const d = new Date();
-  d.setDate(d.getDate() - randomInt(0, daysBack));
+  d.setDate(d.getDate() - randomInt(1, daysBack));
   return d.toISOString();
 }
 

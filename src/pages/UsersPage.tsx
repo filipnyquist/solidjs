@@ -6,6 +6,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Badge } from "../components/ui/Badge";
 import { Modal } from "../components/ui/Modal";
+import { ConfirmDialog } from "../components/ui/AlertDialog";
 import { Select } from "../components/ui/Select";
 import { Skeleton } from "../components/ui/Skeleton";
 import { fetchUsers, createUser, updateUser, deleteUser } from "../api/client";
@@ -89,7 +90,12 @@ export const UsersPage: Component = () => {
             <Button variant="ghost" size="icon" onClick={() => openEdit(user)}>
               <Pencil class="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(user)} class="text-destructive hover:text-destructive">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDeleteTarget(user)}
+              class="text-destructive hover:text-destructive"
+            >
               <Trash2 class="h-4 w-4" />
             </Button>
           </div>
@@ -146,7 +152,7 @@ export const UsersPage: Component = () => {
         addToast({ title: "User created", description: `${created.name} has been added.`, variant: "success" });
       }
       setShowModal(false);
-    } catch (e) {
+    } catch {
       addToast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
     } finally {
       setSaving(false);
@@ -200,11 +206,8 @@ export const UsersPage: Component = () => {
               ]}
               placeholder="All statuses"
               value={(columnFilters().find(f => f.id === "status")?.value as string) ?? ""}
-              onChange={(e) => {
-                const v = e.currentTarget.value;
-                setColumnFilters(v ? [{ id: "status", value: v }] : []);
-              }}
-              class="w-40"
+              onChange={(v) => setColumnFilters(v ? [{ id: "status", value: v }] : [])}
+              class="w-44"
             />
           </div>
         </CardHeader>
@@ -273,7 +276,7 @@ export const UsersPage: Component = () => {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Modal */}
+      {/* Create / Edit Modal (Kobalte Dialog) */}
       <Modal
         open={showModal()}
         onClose={() => setShowModal(false)}
@@ -308,7 +311,7 @@ export const UsersPage: Component = () => {
                   { value: "user", label: "User" },
                 ]}
                 value={form().role}
-                onChange={(e) => setForm(f => ({ ...f, role: e.currentTarget.value as User["role"] }))}
+                onChange={(v) => setForm(f => ({ ...f, role: v as User["role"] }))}
               />
             </div>
             <div class="space-y-2">
@@ -320,7 +323,7 @@ export const UsersPage: Component = () => {
                   { value: "pending", label: "Pending" },
                 ]}
                 value={form().status}
-                onChange={(e) => setForm(f => ({ ...f, status: e.currentTarget.value as User["status"] }))}
+                onChange={(v) => setForm(f => ({ ...f, status: v as User["status"] }))}
               />
             </div>
           </div>
@@ -333,24 +336,24 @@ export const UsersPage: Component = () => {
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
+      {/* Delete Confirmation (Kobalte AlertDialog) */}
+      <ConfirmDialog
         open={!!deleteTarget()}
         onClose={() => setDeleteTarget(null)}
         title="Delete User"
         description="This action cannot be undone."
-        size="sm"
       >
         <div class="space-y-4">
           <p class="text-sm text-muted-foreground">
-            Are you sure you want to delete <strong>{deleteTarget()?.name}</strong>? This will permanently remove their account and data.
+            Are you sure you want to delete <strong class="text-foreground">{deleteTarget()?.name}</strong>?
+            This will permanently remove their account and all associated data.
           </p>
           <div class="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete User</Button>
           </div>
         </div>
-      </Modal>
+      </ConfirmDialog>
     </Layout>
   );
 };

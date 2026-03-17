@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
+import { SwitchToggle } from "../components/ui/SwitchToggle";
 import { addToast } from "../store/toastStore";
 
 export const SettingsPage: Component = () => {
@@ -43,10 +44,21 @@ export const SettingsPage: Component = () => {
     setNotifications(n => ({ ...n, [key]: !n[key] }));
   }
 
+  const emailPrefs: { key: keyof ReturnType<typeof notifications>; label: string; desc: string }[] = [
+    { key: "emailOrders", label: "New Orders",    desc: "Get notified when a new order is placed" },
+    { key: "emailUsers",  label: "New Users",     desc: "Get notified when a new user signs up" },
+    { key: "emailAlerts", label: "System Alerts", desc: "Receive critical system and security alerts" },
+  ];
+
+  const pushPrefs: { key: keyof ReturnType<typeof notifications>; label: string; desc: string }[] = [
+    { key: "pushOrders", label: "Order Updates",  desc: "Push alerts for order status changes" },
+    { key: "pushUsers",  label: "User Activity",  desc: "Push alerts for new user registrations" },
+  ];
+
   return (
     <Layout title="Settings" subtitle="Manage your account and preferences">
       <div class="max-w-2xl space-y-6">
-        {/* Profile Settings */}
+        {/* Profile */}
         <Card>
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>
@@ -66,41 +78,31 @@ export const SettingsPage: Component = () => {
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <label class="text-sm font-medium">Full Name</label>
-                  <Input
-                    value={profile().name}
-                    onInput={(e) => setProfile(p => ({ ...p, name: e.currentTarget.value }))}
-                  />
+                  <Input value={profile().name} onInput={(e) => setProfile(p => ({ ...p, name: e.currentTarget.value }))} />
                 </div>
                 <div class="space-y-2">
                   <label class="text-sm font-medium">Email</label>
-                  <Input
-                    type="email"
-                    value={profile().email}
-                    onInput={(e) => setProfile(p => ({ ...p, email: e.currentTarget.value }))}
-                  />
+                  <Input type="email" value={profile().email} onInput={(e) => setProfile(p => ({ ...p, email: e.currentTarget.value }))} />
                 </div>
               </div>
               <div class="space-y-2">
                 <label class="text-sm font-medium">Company</label>
-                <Input
-                  value={profile().company}
-                  onInput={(e) => setProfile(p => ({ ...p, company: e.currentTarget.value }))}
-                />
+                <Input value={profile().company} onInput={(e) => setProfile(p => ({ ...p, company: e.currentTarget.value }))} />
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <label class="text-sm font-medium">Timezone</label>
                   <Select
                     options={[
-                      { value: "UTC", label: "UTC" },
-                      { value: "America/New_York", label: "Eastern Time" },
-                      { value: "America/Chicago", label: "Central Time" },
-                      { value: "America/Los_Angeles", label: "Pacific Time" },
-                      { value: "Europe/London", label: "London" },
-                      { value: "Europe/Paris", label: "Paris" },
+                      { value: "UTC",                  label: "UTC" },
+                      { value: "America/New_York",      label: "Eastern Time" },
+                      { value: "America/Chicago",       label: "Central Time" },
+                      { value: "America/Los_Angeles",   label: "Pacific Time" },
+                      { value: "Europe/London",         label: "London" },
+                      { value: "Europe/Paris",          label: "Paris" },
                     ]}
                     value={profile().timezone}
-                    onChange={(e) => setProfile(p => ({ ...p, timezone: e.currentTarget.value }))}
+                    onChange={(v) => setProfile(p => ({ ...p, timezone: v }))}
                   />
                 </div>
                 <div class="space-y-2">
@@ -113,7 +115,7 @@ export const SettingsPage: Component = () => {
                       { value: "de", label: "German" },
                     ]}
                     value={profile().language}
-                    onChange={(e) => setProfile(p => ({ ...p, language: e.currentTarget.value }))}
+                    onChange={(v) => setProfile(p => ({ ...p, language: v }))}
                   />
                 </div>
               </div>
@@ -126,52 +128,48 @@ export const SettingsPage: Component = () => {
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
+        {/* Notifications */}
         <Card>
           <CardHeader>
             <CardTitle>Notification Preferences</CardTitle>
             <CardDescription>Choose how and when you'd like to be notified.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div class="space-y-4">
-              <h4 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Email Notifications</h4>
-              {([
-                ["emailOrders", "New Orders", "Get notified when a new order is placed"],
-                ["emailUsers", "New Users", "Get notified when a new user signs up"],
-                ["emailAlerts", "System Alerts", "Receive critical system and security alerts"],
-              ] as [keyof ReturnType<typeof notifications>, string, string][]).map(([key, label, desc]) => (
-                <div class="flex items-center justify-between py-2">
+            <div class="space-y-1">
+              <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Email Notifications
+              </h4>
+              {emailPrefs.map(({ key, label, desc }) => (
+                <div class="flex items-center justify-between py-3 border-b border-border last:border-0">
                   <div>
                     <p class="text-sm font-medium">{label}</p>
                     <p class="text-xs text-muted-foreground">{desc}</p>
                   </div>
-                  <button
-                    onClick={() => toggle(key)}
-                    class={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${notifications()[key] ? "bg-primary" : "bg-muted"}`}
-                  >
-                    <span class={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifications()[key] ? "translate-x-4" : "translate-x-1"}`} />
-                  </button>
+                  <SwitchToggle
+                    checked={notifications()[key]}
+                    onChange={() => toggle(key)}
+                    aria-label={`Toggle ${label}`}
+                  />
                 </div>
               ))}
-              <h4 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide pt-2">Push Notifications</h4>
-              {([
-                ["pushOrders", "Order Updates", "Push alerts for order status changes"],
-                ["pushUsers", "User Activity", "Push alerts for new user registrations"],
-              ] as [keyof ReturnType<typeof notifications>, string, string][]).map(([key, label, desc]) => (
-                <div class="flex items-center justify-between py-2">
+
+              <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 mt-5">
+                Push Notifications
+              </h4>
+              {pushPrefs.map(({ key, label, desc }) => (
+                <div class="flex items-center justify-between py-3 border-b border-border last:border-0">
                   <div>
                     <p class="text-sm font-medium">{label}</p>
                     <p class="text-xs text-muted-foreground">{desc}</p>
                   </div>
-                  <button
-                    onClick={() => toggle(key)}
-                    class={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${notifications()[key] ? "bg-primary" : "bg-muted"}`}
-                  >
-                    <span class={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifications()[key] ? "translate-x-4" : "translate-x-1"}`} />
-                  </button>
+                  <SwitchToggle
+                    checked={notifications()[key]}
+                    onChange={() => toggle(key)}
+                    aria-label={`Toggle ${label}`}
+                  />
                 </div>
               ))}
-              <div class="flex justify-end pt-2">
+              <div class="flex justify-end pt-4">
                 <Button onClick={saveNotifications} disabled={saving()}>
                   {saving() ? "Saving..." : "Save Preferences"}
                 </Button>
